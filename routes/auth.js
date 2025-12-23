@@ -50,4 +50,4 @@ router.post("/login", async (req, res) => {
   });
 });
 
-module.exports = router;  give me overall auth.js
+module.exports = router;  
