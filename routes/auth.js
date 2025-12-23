@@ -1,31 +1,53 @@
+const express = require("express");
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
-const auth = (req, res, next) => {
-  try {
-    // Get token from header
-    const authHeader = req.headers.authorization;
+const router = express.Router();
 
-    if (!authHeader) {
-      return res.status(401).json({ message: "No token provided" });
-    }
+// SIGNUP
+router.post("/signup", async (req, res) => {
+  const { email, password } = req.body;
 
-    // Expected format: Bearer <token>
-    const token = authHeader.split(" ")[1];
+  if (!email || !password)
+    return res.status(400).json({ message: "All fields required" });
 
-    if (!token) {
-      return res.status(401).json({ message: "Invalid token format" });
-    }
+  const exists = await User.findOne({ email });
+  if (exists)
+    return res.status(409).json({ message: "User already exists" });
 
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Attach userId to request
-    req.userId = decoded.userId;
+  await User.create({
+    email,
+    password: hashedPassword
+  });
 
-    next();
-  } catch (error) {
-    return res.status(401).json({ message: "Token is invalid or expired" });
-  }
-};
+  res.status(201).json({ message: "Signup successful" });
+});
 
-module.exports = auth;
+// LOGIN
+router.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  const user = await User.findOne({ email });
+  if (!user)
+    return res.status(401).json({ message: "Invalid credentials" });
+
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch)
+    return res.status(401).json({ message: "Invalid credentials" });
+
+  const token = jwt.sign(
+    { userId: user._id },
+    process.env.JWT_SECRET,
+    { expiresIn: "1d" }
+  );
+
+  res.json({
+    message: "Login successful",
+    token
+  });
+});
+
+module.exports = router;  give me overall auth.js
