@@ -1,53 +1,31 @@
-const express = require("express");
-const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
 
-const router = express.Router();
+const auth = (req, res, next) => {
+  try {
+    // Get token from header
+    const authHeader = req.headers.authorization;
 
-// SIGNUP
-router.post("/signup", async (req, res) => {
-  const { email, password } = req.body;
+    if (!authHeader) {
+      return res.status(401).json({ message: "No token provided" });
+    }
 
-  if (!email || !password)
-    return res.status(400).json({ message: "All fields required" });
+    // Expected format: Bearer <token>
+    const token = authHeader.split(" ")[1];
 
-  const exists = await User.findOne({ email });
-  if (exists)
-    return res.status(409).json({ message: "User already exists" });
+    if (!token) {
+      return res.status(401).json({ message: "Invalid token format" });
+    }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-  await User.create({
-    email,
-    password: hashedPassword
-  });
+    // Attach userId to request
+    req.userId = decoded.userId;
 
-  res.status(201).json({ message: "Signup successful" });
-});
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Token is invalid or expired" });
+  }
+};
 
-// LOGIN
-router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
-  const user = await User.findOne({ email });
-  if (!user)
-    return res.status(401).json({ message: "Invalid credentials" });
-
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch)
-    return res.status(401).json({ message: "Invalid credentials" });
-
-  const token = jwt.sign(
-    { userId: user._id },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" }
-  );
-
-  res.json({
-    message: "Login successful",
-    token
-  });
-});
-
-module.exports = router;
+module.exports = auth;
