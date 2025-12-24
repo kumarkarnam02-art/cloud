@@ -9,6 +9,10 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+const schemeRoutes = require("./routes/schemeRoutes");
+
+app.use("/api", schemeRoutes);
+
 
 // ------------------ MongoDB ------------------
 mongoose
