@@ -1,6 +1,6 @@
 const express = require("express");
 const Scheme = require("../models/Scheme");
-const auth = require("auth");
+const auth = require("./auth");
 
 const router = express.Router();
 
