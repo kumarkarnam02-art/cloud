@@ -48,6 +48,6 @@ router.post("/login", async (req, res) => {
     message: "Login successful",
     token
   });
-});
+
 
 module.exports = router;  
